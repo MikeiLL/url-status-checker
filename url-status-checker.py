@@ -1,8 +1,10 @@
 import argparse
 import httpx
 import asyncio
+from datetime import datetime
 from tqdm import tqdm
 from colorama import Fore, Style
+import sys
 
 # Banner
 BANNER = """
@@ -22,6 +24,8 @@ COLORS = {
     "5xx": Fore.LIGHTRED_EX,
     "Invalid": Fore.WHITE
 }
+
+
 
 # Function to check URL status
 async def check_url_status(session, url_id, url):
@@ -43,10 +47,11 @@ def parse_arguments():
     parser.add_argument("-update", action="store_true", help="Update the tool")
     return parser.parse_args()
 
+
 # Main function
 async def main():
     args = parse_arguments()
-    
+
     if args.version:
         print("StatusChecker.py version 1.0")
         return
@@ -90,7 +95,7 @@ async def main():
         "5xx": [],
         "Invalid": []
     }
-
+    print(f"\n\n{Fore.CYAN}========== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ({len(urls)} URLs) ========== \n\n{Fore.WHITE}")
     for url_id, (url, status) in results.items():
         if status is not None:
             status_group = str(status)[0] + "xx"
