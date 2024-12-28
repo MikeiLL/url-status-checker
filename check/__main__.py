@@ -7,6 +7,24 @@ from colorama import Fore, Style
 import time
 import sys
 import subprocess
+from email.mime.text import MIMEText
+from . import apikeys
+import sendgrid
+import os
+from sendgrid.helpers.mail import *
+
+def alert_message(message, subject='URL Outtage Message', me=apikeys.system_email, you=apikeys.admin_email):
+	sg = sendgrid.SendGridAPIClient(api_key=apikeys.SENDGRID_API_KEY)
+	from_email = Email(me)
+	to_email = To(you)
+	content = Content("text/plain", message)
+	mail = Mail(from_email, to_email, subject, content)
+	response = sg.client.mail.send.post(request_body=mail.get())
+	print(response.status_code)
+	print(response.body)
+	print(response.headers)
+	return True
+
 
 CMD = '''
 on run argv
@@ -18,8 +36,8 @@ def notify(title, text):
   subprocess.call(['osascript', '-e', CMD, title, text])
 
 # Example uses:
-notify(r'Weird\/|"!@#$%^&*()\ntitle', r'!@#$%^&*()"')
-sys.exit(0)
+#notify(r'Weird\/|"!@#$%^&*()\ntitle', r'!@#$%^&*()"')
+
 # Banner
 BANNER = """
 ╔═══════════════════════════════╗
@@ -121,7 +139,12 @@ async def main():
         if urls:
             print(COLORS.get(code, Fore.WHITE) + f'===== {code.upper()} =====')
             for url, status in urls:
-                print(f'[Status : {status}] = {url}')
+
+                #print(f"URL: {url} Status: {status} {status != 200} {status == 200}")
+              if(status != 200):
+                  alert_message(f"URL: {url} is down with status code {status}")
+                  notify("URL Down", f"URL: {url} is down with status code {status}")
+              print(f'[Status : {status}] = {url}')
             print(Style.RESET_ALL)
 
     if args.output:
