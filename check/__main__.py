@@ -42,7 +42,7 @@ def notify(title, text):
 BANNER = """
 ╔═══════════════════════════════╗
 ║       StatusChecker.py        ║
-║   Created By: BLACK_SCORP10   ║
+║   Adapted: BLACK_SCORP10      ║
 ║   Telegram: @BLACK_SCORP10    ║
 ╚═══════════════════════════════╝
 """
@@ -70,54 +70,24 @@ async def check_url_status(session, url_id, url):
         return url_id, url, None
 
 # Function to parse arguments
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="URL Status Checker")
-    parser.add_argument("-d", "--domain", help="Single domain/URL to check")
-    parser.add_argument("-l", "--list", help="File containing list of domains/URLs to check")
-    parser.add_argument("-o", "--output", help="File to save the output")
-    parser.add_argument("-v", "--version", action="store_true", help="Display version information")
-    parser.add_argument("-update", action="store_true", help="Update the tool")
-    return parser.parse_args()
 
 
 # Main function
 async def main():
-    args = parse_arguments()
-
-    if args.version:
-        print("StatusChecker.py version 1.0")
-        return
-
-    if args.update:
-        print("Checking for updates...")  # Implement update logic here
-        return
 
     print(BANNER)
 
-    urls = set()
-
-    if args.domain:
-        urls.add(args.domain)
-    elif args.list:
-        with open(args.list, 'r') as file:
-            urls.update(file.read().splitlines())
-    else:
-        print("No input provided. Use -d or -l option.")
-        return
-
     async with httpx.AsyncClient() as session:
         results = {}
-        tasks = [check_url_status(session, url_id, url) for url_id, url in enumerate(urls)]
-        if len(urls) > 1:
-            with tqdm(total=len(urls), desc="Checking URLs") as pbar:
+        tasks = [check_url_status(session, url_id, url) for url_id, url in enumerate(apikeys.url_list)]
+        if len(apikeys.url_list) > 1:
+            with tqdm(total=len(apikeys.url_list), desc="Checking URLs") as pbar:
                 for coro in asyncio.as_completed(tasks):
                     url_id, url, status_code = await coro
                     results[url_id] = (url, status_code)
                     pbar.update(1)
         else:
-            for coro in asyncio.as_completed(tasks):
-                url_id, url, status_code = await coro
-                results[url_id] = (url, status_code)
+            print("Add urls to your config list.")
 
     status_codes = {
         "1xx": [],
@@ -127,7 +97,7 @@ async def main():
         "5xx": [],
         "Invalid": []
     }
-    print(f"\n\n{Fore.CYAN}========== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ({len(urls)} URLs) ========== \n\n{Fore.WHITE}")
+    print(f"\n\n{Fore.CYAN}========== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ({len(apikeys.url_list)} URLs) ========== \n\n{Fore.WHITE}")
     for url_id, (url, status) in results.items():
         if status is not None:
             status_group = str(status)[0] + "xx"
@@ -147,19 +117,11 @@ async def main():
               print(f'[Status : {status}] = {url}')
             print(Style.RESET_ALL)
 
-    if args.output:
-        with open(args.output, 'w') as file:
-            for code, urls in status_codes.items():
-                if urls:
-                    file.write(f'===== {code.upper()} =====\n')
-                    for url, status in urls:
-                        file.write(f'[Status : {status}] = {url}\n')
-
 if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
-            time.sleep(5) # Sleep for 3 seconds before re-running
+            time.sleep(600) # Sleep for 3 seconds before re-running
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
