@@ -122,7 +122,7 @@ if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
-            time.sleep(600) # Sleep for 3 seconds before re-running
+            time.sleep(3600) # Sleep for 3 seconds before re-running
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
