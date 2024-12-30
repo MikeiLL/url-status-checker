@@ -11,6 +11,11 @@ Version 1.0.0
 Created BY BLACK-SCORP10
 [t.me/BLACK-SCORP10](https://t.me/BLACK_SCORP10)
 
+Heavily hacked by MikeiLL
+
+## Usage
+`python -m check`
+
 ## Features
 
 - Check the status of single or multiple URLs/domains.
