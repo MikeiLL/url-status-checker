@@ -71,7 +71,7 @@ async def check_url_status(session, url_id, url):
 
 # Function to parse arguments
 
-
+prev_failures, cur_failures = {}, {}
 # Main function
 async def main():
 
@@ -97,6 +97,9 @@ async def main():
         "5xx": [],
         "Invalid": []
     }
+
+    global cur_failures
+    cur_failures = {}
     print(f"\n\n{Fore.CYAN}========== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ({len(apikeys.url_list)} URLs) ========== \n\n{Fore.WHITE}")
     for url_id, (url, status) in results.items():
         if status is not None:
@@ -113,11 +116,10 @@ async def main():
                 #print(f"URL: {url} Status: {status} {status != 200} {status == 200}")
               if(status != 200):
                   shorturl = url.split("://")[1]
-                  time.sleep(60)
-                  url_id, url, status = check_url_status(session, url_id, url)
-                  if(status != 200):
-                    alert_message(f"URL: {shorturl} down for more than a minute with status code {status}")
-                    notify("URL Down", f"URL: {url} is down with status code {status}")
+                  cur_failures[shorturl] = status
+                  if(shorturl in prev_failures):
+                    alert_message(f"URL: {shorturl} down for more than a minute with status code {prev_failures[shorturl], status}")
+                    notify("URL Down", f"URL: {shorturl} is down with status code {prev_failures[shorturl], status}")
               print(f'[Status : {status}] = {url}')
             print(Style.RESET_ALL)
 
@@ -125,7 +127,8 @@ if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
-            time.sleep(TIMEOUT) # Sleep for 3 seconds before re-running
+            prev_failures = cur_failures
+            time.sleep(60 if prev_failures else TIMEOUT)
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
