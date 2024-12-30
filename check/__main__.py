@@ -42,8 +42,8 @@ def notify(title, text):
 BANNER = """
 ╔═══════════════════════════════╗
 ║       StatusChecker.py        ║
-║   Adapted: BLACK_SCORP10      ║
-║   Telegram: @BLACK_SCORP10    ║
+║   Adapted: Mike iLL MZOO      ║
+║   From Tel: @BLACK_SCORP10    ║
 ╚═══════════════════════════════╝
 """
 
@@ -57,7 +57,7 @@ COLORS = {
     "Invalid": Fore.WHITE
 }
 
-
+TIMEOUT = 3600
 
 # Function to check URL status
 async def check_url_status(session, url_id, url):
@@ -113,8 +113,11 @@ async def main():
                 #print(f"URL: {url} Status: {status} {status != 200} {status == 200}")
               if(status != 200):
                   shorturl = url.split("://")[1]
-                  alert_message(f"URL: {shorturl} is down with status code {status}")
-                  notify("URL Down", f"URL: {url} is down with status code {status}")
+                  time.sleep(60)
+                  url_id, url, status = check_url_status(session, url_id, url)
+                  if(status != 200):
+                    alert_message(f"URL: {shorturl} down for more than a minute with status code {status}")
+                    notify("URL Down", f"URL: {url} is down with status code {status}")
               print(f'[Status : {status}] = {url}')
             print(Style.RESET_ALL)
 
@@ -122,7 +125,7 @@ if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
-            time.sleep(3600) # Sleep for 3 seconds before re-running
+            time.sleep(TIMEOUT) # Sleep for 3 seconds before re-running
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
