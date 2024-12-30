@@ -112,7 +112,8 @@ async def main():
 
                 #print(f"URL: {url} Status: {status} {status != 200} {status == 200}")
               if(status != 200):
-                  alert_message(f"URL: {url} is down with status code {status}")
+                  shorturl = url.split("://")[1]
+                  alert_message(f"URL: {shorturl} is down with status code {status}")
                   notify("URL Down", f"URL: {url} is down with status code {status}")
               print(f'[Status : {status}] = {url}')
             print(Style.RESET_ALL)
