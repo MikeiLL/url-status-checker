@@ -59,8 +59,9 @@ python status_checker.py [-h] [-d DOMAIN] [-l LIST] [-o OUTPUT] [-v] [-update]
 python status_checker.py -l urls.txt -o results.txt
 ```
 
+### new way:
 ```bash
-watch -n 72000 python url-status-checker.py -l url_list
+watch -n 7200 python check
 ```
  **Preview:**
  <a href=" https://github.com/BLACK-SCORP10/Email-Vulnerablity-Checker.git"><img src="img/demo.png"></a>
