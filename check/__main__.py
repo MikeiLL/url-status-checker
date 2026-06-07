@@ -72,15 +72,14 @@ async def check_url_status(session, url_id, url):
 
 # Function to parse arguments
 
-cur_failures, prev_failures = {}, {} #TODO replace these with connection_status below
 """
 Map url to a tuple with two items, 0: failure_level, 1: status
 # zero: not failing
 # one: one failure
-# two: more than one failure
+# two: recovered from failure
 """
-connection_status = dict(zip([url.split("://")[1] for url in apikeys.url_list], ([0] * len(apikeys.url_list), [0] * len(apikeys.url_list))))
-
+connection_status = dict(zip([url.split("://")[1] for url in apikeys.url_list], ([x,x] for x in [0] * len(apikeys.url_list))))
+print("CONNECTION STATUS\n\n\n", connection_status)
 # Main function
 async def main():
 
@@ -95,7 +94,6 @@ async def main():
                     url_id, url, status_code = await coro
                     results[url_id] = (url, status_code)
                     pbar.update(1)
-            print(results)
         else:
             print("Add urls to your config list.")
 
@@ -108,8 +106,7 @@ async def main():
         "Invalid": []
     }
 
-    global cur_failures
-    cur_failures = {}
+    global connection_status
     print(f"\n\n{Fore.CYAN}========== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ({len(apikeys.url_list)} URLs) ========== \n\n{Fore.WHITE}")
     for url_id, (url, status) in results.items():
         if status is not None:
@@ -122,31 +119,30 @@ async def main():
         if urls:
             print(COLORS.get(code, Fore.WHITE) + f'===== {code.upper()} =====')
             for url, status in urls:
-
-                #print(f"URL: {url} Status: {status} {status != 200} {status == 200}")
-              if(status != 200):
-                  shorturl = url.split("://")[1]
-                  cur_failures[shorturl] = status
-                  if (shorturl in prev_failures):
-                    if connection_status[shorturl] == 0: connection_status[shorturl] = 1
-                    elif connection_status[shorturl] == 1:
-                      #alert_message(f"URL: {shorturl} down for more than a minute with status code {prev_failures[shorturl], status}")
-                      notify("URL Down", f"URL: {shorturl} is down with status code {prev_failures[shorturl], status}")
-                      print("############### \n\nINTRUDER ALERT\n")
-                    elif connection_status[shorturl] == 2:
-                      notify("URL Up. Rest easy.", f"URL: {shorturl} is back up.")
-                      connection_status[shorturl] = 0
-                      print("############### \n\nRESOLVED\n")
+              shorturl = url.split("://")[1]
+              connection_status[shorturl][1] = status
+              if (status != 200):
+                  if connection_status[shorturl][0] == 0:
+                    connection_status[shorturl][0] = 1
+                  elif connection_status[shorturl][0] == 1:
+                    notify("URL Down", f"URL: {shorturl} is down with status code {connection_status[shorturl][1]}")
+                    print("############### \n\nINTRUDER ALERT\n")
+                    connection_status[shorturl][0] = 2
+                    #alert_message(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}")
+              else:
+                if connection_status[shorturl][0] == 2:
+                    notify("URL Up. Rest easy.", f"URL: {shorturl} is back up with status code {connection_status[shorturl][1]}")
+                    connection_status[shorturl][0] = 0
+                    print("############### \n\nRESOLVED\n")
+                if (connection_status[shorturl][0] == 1): connection_status[shorturl][0] = 2
             print(Style.RESET_ALL)
 
 if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
-            print("Current failures", cur_failures)
-            prev_failures = cur_failures
-            print("Previos failures", prev_failures)
             time.sleep(5)
+            print("CONNECTION STAT", connection_status)
             #time.sleep(60 if prev_failures else TIMEOUT)
         except KeyboardInterrupt:
             print("\n\nExiting...")
