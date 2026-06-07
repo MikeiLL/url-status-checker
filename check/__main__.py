@@ -1,5 +1,6 @@
 import argparse
 import httpx
+import random
 import asyncio
 from datetime import datetime
 from tqdm import tqdm
@@ -62,7 +63,7 @@ TIMEOUT = 3600
 # Function to check URL status
 async def check_url_status(session, url_id, url):
     if "://" not in url:
-        url = "https://" + url  # Adding https:// if no protocol is specified
+        url = "https://" + url  # Add https:// if no protocol is specified
     try:
         response = await session.head(url)
         return url_id, url, response.status_code
@@ -71,21 +72,30 @@ async def check_url_status(session, url_id, url):
 
 # Function to parse arguments
 
-prev_failures, cur_failures = {}, {}
+cur_failures, prev_failures = {}, {} #TODO replace these with connection_status below
+"""
+Map url to a tuple with two items, 0: failure_level, 1: status
+# zero: not failing
+# one: one failure
+# two: more than one failure
+"""
+connection_status = dict(zip([url.split("://")[1] for url in apikeys.url_list], ([0] * len(apikeys.url_list), [0] * len(apikeys.url_list))))
+
 # Main function
 async def main():
 
-    print(BANNER)
+    print(BANNER + str(random.randint(1,1000)))
 
     async with httpx.AsyncClient() as session:
         results = {}
         tasks = [check_url_status(session, url_id, url) for url_id, url in enumerate(apikeys.url_list)]
-        if len(apikeys.url_list) > 1:
+        if len(apikeys.url_list) >= 1:
             with tqdm(total=len(apikeys.url_list), desc="Checking URLs") as pbar:
                 for coro in asyncio.as_completed(tasks):
                     url_id, url, status_code = await coro
                     results[url_id] = (url, status_code)
                     pbar.update(1)
+            print(results)
         else:
             print("Add urls to your config list.")
 
@@ -117,18 +127,27 @@ async def main():
               if(status != 200):
                   shorturl = url.split("://")[1]
                   cur_failures[shorturl] = status
-                  if(shorturl in prev_failures):
-                    alert_message(f"URL: {shorturl} down for more than a minute with status code {prev_failures[shorturl], status}")
-                    notify("URL Down", f"URL: {shorturl} is down with status code {prev_failures[shorturl], status}")
-              print(f'[Status : {status}] = {url}')
+                  if (shorturl in prev_failures):
+                    if connection_status[shorturl] == 0: connection_status[shorturl] = 1
+                    elif connection_status[shorturl] == 1:
+                      #alert_message(f"URL: {shorturl} down for more than a minute with status code {prev_failures[shorturl], status}")
+                      notify("URL Down", f"URL: {shorturl} is down with status code {prev_failures[shorturl], status}")
+                      print("############### \n\nINTRUDER ALERT\n")
+                    elif connection_status[shorturl] == 2:
+                      notify("URL Up. Rest easy.", f"URL: {shorturl} is back up.")
+                      connection_status[shorturl] = 0
+                      print("############### \n\nRESOLVED\n")
             print(Style.RESET_ALL)
 
 if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
+            print("Current failures", cur_failures)
             prev_failures = cur_failures
-            time.sleep(60 if prev_failures else TIMEOUT)
+            print("Previos failures", prev_failures)
+            time.sleep(5)
+            #time.sleep(60 if prev_failures else TIMEOUT)
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
