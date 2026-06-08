@@ -1,6 +1,5 @@
 import argparse
 import httpx
-import random
 import asyncio
 from datetime import datetime
 from tqdm import tqdm
@@ -70,8 +69,6 @@ async def check_url_status(session, url_id, url):
     except httpx.RequestError:
         return url_id, url, None
 
-# Function to parse arguments
-
 """
 Map url to a tuple with two items, 0: failure_level, 1: status
 # zero: not failing
@@ -79,11 +76,10 @@ Map url to a tuple with two items, 0: failure_level, 1: status
 # two: recovered from failure
 """
 connection_status = dict(zip([url.split("://")[1] for url in apikeys.url_list], ([x,x] for x in [0] * len(apikeys.url_list))))
-print("CONNECTION STATUS\n\n\n", connection_status)
 # Main function
 async def main():
 
-    print(BANNER + str(random.randint(1,1000)))
+    print(BANNER)
 
     async with httpx.AsyncClient() as session:
         results = {}
@@ -114,7 +110,6 @@ async def main():
             status_codes[status_group].append((url, status))
         else:
             status_codes["Invalid"].append((url, "Invalid"))
-
     for code, urls in status_codes.items():
         if urls:
             print(COLORS.get(code, Fore.WHITE) + f'===== {code.upper()} =====')
@@ -126,24 +121,23 @@ async def main():
                     connection_status[shorturl][0] = 1
                   elif connection_status[shorturl][0] == 1:
                     notify("URL Down", f"URL: {shorturl} is down with status code {connection_status[shorturl][1]}")
-                    print("############### \n\nINTRUDER ALERT\n")
+                    alert_message(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}")
                     connection_status[shorturl][0] = 2
-                    #alert_message(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}")
               else:
                 if connection_status[shorturl][0] == 2:
                     notify("URL Up. Rest easy.", f"URL: {shorturl} is back up with status code {connection_status[shorturl][1]}")
+                    alert_message(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}")
                     connection_status[shorturl][0] = 0
-                    print("############### \n\nRESOLVED\n")
                 if (connection_status[shorturl][0] == 1): connection_status[shorturl][0] = 2
+              print(f'[Status : {status}] = {url}')
             print(Style.RESET_ALL)
 
 if __name__ == "__main__":
     while (1):
         try:
             asyncio.run(main())
-            time.sleep(5)
-            print("CONNECTION STAT", connection_status)
-            #time.sleep(60 if prev_failures else TIMEOUT)
+            # check sooner if we have any !200 statuses
+            time.sleep(60 if any([x[0] for x in connection_status.values()]) else TIMEOUT)
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
