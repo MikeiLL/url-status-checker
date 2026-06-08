@@ -11,19 +11,26 @@ from email.mime.text import MIMEText
 from . import apikeys
 import sendgrid
 import os
-from sendgrid.helpers.mail import *
+from sendgrid.helpers.mail import Content, Email, Mail, Personalization, Cc, To
 
 def alert_message(message, subject='URL Outtage Message', me=apikeys.system_email, you=apikeys.admin_email):
-	sg = sendgrid.SendGridAPIClient(api_key=apikeys.SENDGRID_API_KEY)
-	from_email = Email(me)
-	to_email = To(you)
-	content = Content("text/plain", message)
-	mail = Mail(from_email, to_email, subject, content)
-	response = sg.client.mail.send.post(request_body=mail.get())
-	print(response.status_code)
-	print(response.body)
-	print(response.headers)
-	return True
+  sg = sendgrid.SendGridAPIClient(api_key=apikeys.SENDGRID_API_KEY)
+  from_email = Email(me)
+  to_email = To(you)
+  content = Content("text/plain", message)
+  personalization = Personalization()
+  personalization.add_to(to_email)
+  #for cc_address in apikeys.mobile_alerts:
+  #    personalization.add_cc(Cc(cc_address))
+
+
+  mail = Mail(from_email, to_email, subject, content)
+  mail.add_personalization(personalization)
+  response = sg.client.mail.send.post(request_body=mail.get())
+  print(response.status_code)
+  print(response.body)
+  print(response.headers)
+  return True
 
 
 CMD = '''
@@ -126,7 +133,7 @@ async def main():
               else:
                 if connection_status[shorturl][0] == 2:
                     notify("URL Up. Rest easy.", f"URL: {shorturl} is back up with status code {connection_status[shorturl][1]}")
-                    alert_message(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}")
+                    alert_message(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}", subject=f"{shorturl} is Back up")
                     connection_status[shorturl][0] = 0
                 if (connection_status[shorturl][0] == 1): connection_status[shorturl][0] = 2
               print(f'[Status : {status}] = {url}')
