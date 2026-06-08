@@ -128,12 +128,12 @@ async def main():
                     connection_status[shorturl][0] = 1
                   elif connection_status[shorturl][0] == 1:
                     notify("URL Down", f"URL: {shorturl} is down with status code {connection_status[shorturl][1]}")
-                    alert_message(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}")
+                    alert_message(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}", subject=f"{shorturl} is down")
                     connection_status[shorturl][0] = 2
               else:
                 if connection_status[shorturl][0] == 2:
                     notify("URL Up. Rest easy.", f"URL: {shorturl} is back up with status code {connection_status[shorturl][1]}")
-                    alert_message(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}", subject=f"{shorturl} is Back up")
+                    alert_message(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}", subject=f"{shorturl} is back up")
                     connection_status[shorturl][0] = 0
                 if (connection_status[shorturl][0] == 1): connection_status[shorturl][0] = 2
               print(f'[Status : {status}] = {url}')
