@@ -2,7 +2,7 @@ import argparse
 import httpx
 import asyncio
 from datetime import datetime
-from tqdm import tqdm
+from tqdm import tqdm # for progress bar
 from colorama import Fore, Style
 import time
 import sys
@@ -12,8 +12,9 @@ from . import apikeys
 import sendgrid
 import os
 from sendgrid.helpers.mail import Content, Email, Mail, Personalization, Cc, To
+from pprint import pprint
 
-def alert_message(message, subject='URL Outtage Message', me=apikeys.system_email, you=apikeys.admin_email):
+def email_alert(message, subject='URL Outtage Message', me=apikeys.system_email, you=apikeys.admin_email):
   sg = sendgrid.SendGridAPIClient(api_key=apikeys.SENDGRID_API_KEY)
   from_email = Email(me)
   to_email = To(you)
@@ -27,9 +28,6 @@ def alert_message(message, subject='URL Outtage Message', me=apikeys.system_emai
   mail = Mail(from_email, to_email, subject, content)
   mail.add_personalization(personalization)
   response = sg.client.mail.send.post(request_body=mail.get())
-  print(response.status_code)
-  print(response.body)
-  print(response.headers)
   return True
 
 
@@ -39,11 +37,11 @@ on run argv
 end run
 '''
 
-def notify(title, text):
+def osx_notification(title, text):
   subprocess.call(['osascript', '-e', CMD, title, text])
 
 # Example uses:
-#notify(r'Weird\/|"!@#$%^&*()\ntitle', r'!@#$%^&*()"')
+#osx_notification(r'Weird\/|"!@#$%^&*()\ntitle', r'!@#$%^&*()"')
 
 # Banner
 BANNER = """
@@ -74,6 +72,8 @@ async def check_url_status(session, url_id, url):
         response = await session.head(url)
         return url_id, url, response.status_code
     except httpx.RequestError:
+        print(f'{Fore.RED}######\n\nRequestError for {url}\n')
+        print(Style.RESET_ALL)
         return url_id, url, None
 
 """
@@ -117,6 +117,7 @@ async def main():
             status_codes[status_group].append((url, status))
         else:
             status_codes["Invalid"].append((url, "Invalid"))
+
     for code, urls in status_codes.items():
         if urls:
             print(COLORS.get(code, Fore.WHITE) + f'===== {code.upper()} =====')
@@ -127,13 +128,14 @@ async def main():
                   if connection_status[shorturl][0] == 0:
                     connection_status[shorturl][0] = 1
                   elif connection_status[shorturl][0] == 1:
-                    notify("URL Down", f"URL: {shorturl} is down with status code {connection_status[shorturl][1]}")
-                    alert_message(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}", subject=f"{shorturl} is down")
+                    osx_notification("URL Down", f"URL: {shorturl} is down with status code {connection_status[shorturl][1]}")
+                    email_alert(f"URL: {shorturl} down for more than a minute with status code {connection_status[shorturl][1]}", subject=f"{shorturl} is down")
                     connection_status[shorturl][0] = 2
               else:
                 if connection_status[shorturl][0] == 2:
-                    notify("URL Up. Rest easy.", f"URL: {shorturl} is back up with status code {connection_status[shorturl][1]}")
-                    alert_message(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}", subject=f"{shorturl} is back up")
+                    osx_notification("URL Up. Rest easy.", f"URL: {shorturl} is back up with status code {connection_status[shorturl][1]}")
+                    if not shorturl in [s[0].split('://')[1] for s in status_codes['Invalid']]:
+                      email_alert(f"URL Up. Rest easy.: {shorturl} is back up with status code  {connection_status[shorturl][1]}", subject=f"{shorturl} is back up")
                     connection_status[shorturl][0] = 0
                 if (connection_status[shorturl][0] == 1): connection_status[shorturl][0] = 2
               print(f'[Status : {status}] = {url}')
