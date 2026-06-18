@@ -82,7 +82,12 @@ Map url to a tuple with two items, 0: failure_level, 1: status
 # one: one failure
 # two: recovered from failure
 """
-connection_status = dict(zip([url.split("://")[1] for url in apikeys.url_list], ([x,x] for x in [0] * len(apikeys.url_list))))
+try:
+  connection_status = dict(zip([url.split("://")[1] for url in apikeys.url_list], ([x,x] for x in [0] * len(apikeys.url_list))))
+except IndexError:
+   print("\n\033[0;31mERROR: All the urls need to include \"://\"\033[0m\n")
+   sys.exit()
+
 # Main function
 async def main():
 
@@ -146,7 +151,7 @@ if __name__ == "__main__":
         try:
             asyncio.run(main())
             # check sooner if we have any !200 statuses
-            time.sleep(60 if any([x[0] for x in connection_status.values()]) else TIMEOUT)
+            time.sleep(180 if any([x[0] for x in connection_status.values()]) else TIMEOUT)
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
